@@ -2,22 +2,33 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\ProductIndexRequest;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\ProductVariantPrice;
 use App\Models\Variant;
+use App\Repositories\ProductRepository;
 use Illuminate\Http\Request;
-
+use Illuminate\View\View;
 class ProductController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     *
-     * @return \Illuminate\Contracts\Foundation\Application|\Illuminate\Contracts\View\Factory|\Illuminate\Http\Response|\Illuminate\View\View
-     */
-    public function index()
+    private $productRepo;
+    public function __construct(
+         ProductRepository $productRepo
+    ){
+        $this->productRepo =  $productRepo;
+    }
+    public function index(ProductIndexRequest $request)
     {
-        return view('products.index');
+        $filters = $request->validated();
+        $products = $this->productRepo
+        ->listProduct($filters)
+        ->orderBy('products.id')
+        ->paginate(5);
+        $variants = Variant::all();
+        
+    // $variants = $this->variantService->listVariant()->get();
+        return view('products.index',compact('products','variants'));
     }
 
     /**

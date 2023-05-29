@@ -8,14 +8,28 @@
 
 
     <div class="card">
-        <form action="" method="get" class="card-header">
+        <form action="{{ route('product.index') }}" method="get" class="card-header">
             <div class="form-row justify-content-between">
                 <div class="col-md-2">
-                    <input type="text" name="title" placeholder="Product Title" class="form-control">
+                    <input type="text" name="title" placeholder="Product Title" class="form-control"
+                           value="{{ request('title') }}">
                 </div>
                 <div class="col-md-2">
-                    <select name="variant" id="" class="form-control">
-
+                    <select name="variant" class="form-control">
+                        <option value="" @if(request('variant') == null) selected @endif>
+                            Select a Option
+                        </option>
+                        @foreach($variants as $variant)
+                            <optgroup label="{{ $variant->title ?? '' }}">
+                                @foreach(array_unique($variant->productVariants->pluck('variant')->toArray()) as $variantValue)
+                                    <option
+                                        value="{{ $variantValue ?? '' }}"
+                                        @if($variantValue == request('variant')) selected @endif>
+                                        {{ ucwords($variantValue ?? '') }}
+                                    </option>
+                                @endforeach
+                            </optgroup>
+                        @endforeach
                     </select>
                 </div>
 
@@ -24,12 +38,15 @@
                         <div class="input-group-prepend">
                             <span class="input-group-text">Price Range</span>
                         </div>
-                        <input type="text" name="price_from" aria-label="First name" placeholder="From" class="form-control">
-                        <input type="text" name="price_to" aria-label="Last name" placeholder="To" class="form-control">
+                        <input type="text" name="price_from" aria-label="First name" placeholder="From"
+                               class="form-control" value="{{ request('price_from') }}">
+                        <input type="text" name="price_to" aria-label="Last name" placeholder="To"
+                               class="form-control" value="{{ request('price_to') }}">
                     </div>
                 </div>
                 <div class="col-md-2">
-                    <input type="date" name="date" placeholder="Date" class="form-control">
+                    <input type="date" name="date" placeholder="Date" class="form-control"
+                           value="{{ request('date') }}">
                 </div>
                 <div class="col-md-1">
                     <button type="submit" class="btn btn-primary float-right"><i class="fa fa-search"></i></button>
@@ -45,28 +62,47 @@
                         <th>#</th>
                         <th>Title</th>
                         <th>Description</th>
-                        <th>Variant</th>
+                        <th style="width: 300px">Variant</th>
                         <th width="150px">Action</th>
                     </tr>
                     </thead>
 
                     <tbody>
-
+  @forelse($products as $row)
                     <tr>
-                        <td>1</td>
-                        <td>T-Shirt <br> Created at : 25-Aug-2020</td>
-                        <td>Quality product in low cost</td>
+                        <td>{{$row->id}}</td>
+                        <td>{{$row->title}} <br> Created at : {{$row->created_at->format('d-M-Y')}}</td>
+                        <td>{{$row->description}}</td>
                         <td>
-                            <dl class="row mb-0" style="height: 80px; overflow: hidden" id="variant">
+                            <dl class="row mb-0" style="height: 80px; overflow: hidden;font-size:12px" id="variant">
 
                                 <dt class="col-sm-3 pb-0">
-                                    SM/ Red/ V-Nick
-                                </dt>
+                                    @forelse($row->productVariantPrices as $price)
+                                    @php
+                                        $varint = [];
+                                        if($price->variantOne) {
+                                           $varint[] = $price->variantOne->variant; 
+                                        }
+                                        if($price->variantTwo) {
+                                           $varint[] = $price->variantTwo->variant; 
+                                        }
+                                        if($price->variantThree) {
+                                           $varint[] = $price->variantThree->variant; 
+                                        }
+
+                                    @endphp
+                                    {{implode('/', $varint)}}
+                                @empty
+                                @endforelse
+                                    </dt>
                                 <dd class="col-sm-9">
+                                    @forelse($row->productVariantPrices as $price)
                                     <dl class="row mb-0">
-                                        <dt class="col-sm-4 pb-0">Price : {{ number_format(200,2) }}</dt>
-                                        <dd class="col-sm-8 pb-0">InStock : {{ number_format(50,2) }}</dd>
+                                        <dt class="col-sm-4 pb-0">Price : {{ number_format($price->price,2) }}</dt>
+                                        <dd class="col-sm-8 pb-0">InStock : {{ number_format($price->stock,2) }}</dd>
                                     </dl>
+                                    @empty
+                                    @endforelse
                                 </dd>
                             </dl>
                             <button onclick="$('#variant').toggleClass('h-auto')" class="btn btn-sm btn-link">Show more</button>
@@ -79,7 +115,9 @@
                     </tr>
 
                     </tbody>
-
+ @empty
+                    <tr><td>No Data available</td></tr>
+                    @endforelse
                 </table>
             </div>
 
@@ -88,10 +126,23 @@
         <div class="card-footer">
             <div class="row justify-content-between">
                 <div class="col-md-6">
-                    <p>Showing 1 to 10 out of 100</p>
+                    @php
+                    $showing = $products->perPage() * ($products->currentPage()-1) + 1;
+                    $to = $products->perPage() * $products->currentPage();
+                    $total = $products->total();
+                @endphp
+                <p>
+                    Showing {{$showing > $total ? $total : $showing}}
+                    to 
+                    {{$to > $total ? $total : $to}}
+                    out of 
+                    {{$total}}
+                </p>
                 </div>
                 <div class="col-md-2">
-
+                    <div class="card-footer">
+                        {{ $products->withQueryString()->links() }}
+                    </div>
                 </div>
             </div>
         </div>
